@@ -1,0 +1,85 @@
+# ============================================================
+# sim_eng stack — three containers for drone path-planning sim.
+#
+# This file launches the *already-built* local images:
+#   sim_eng/ctrl:v1.0, sim_eng/bridge:v1.0, sim_eng/sim:v1.0
+# No `build:` section — Compose will NOT rebuild. If an image is
+# missing locally, run scripts/build_all.sh first.
+#
+# Mounts per container:
+#   /dev                 → host hardware (cameras, joysticks, /dev/dri, ...)
+#   /tmp/.X11-unix       → X11 socket so GUI apps can talk to the host X server
+#   $XAUTHORITY          → X authority cookie, read-only
+#   /home/sl/sim_eng/container_*/ws_*  → bind-mounted as /home/dev/ws_<name> inside the container
+# ============================================================
+
+services:
+  ctrl:
+    image: sim_eng/ctrl:v1.0
+    container_name: container_ctrl
+    hostname: container_ctrl
+    network_mode: host
+    ipc: host
+    pid: host
+    stdin_open: true
+    tty: true
+    environment:
+      DISPLAY: "${DISPLAY:-}"
+      XAUTHORITY: /home/dev/.Xauthority
+    volumes:
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/home/dev/.Xauthority:ro
+      - /home/sl/sim_eng/container_ctrl/ws_ctrl:/home/dev/ws_ctrl:rw
+
+  bridge:
+    image: sim_eng/bridge:v1.0
+    container_name: container_bridge
+    hostname: container_bridge
+    network_mode: host
+    ipc: host
+    stdin_open: true
+    tty: true
+    environment:
+      DISPLAY: "${DISPLAY:-}"
+      XAUTHORITY: /home/dev/.Xauthority
+      # Under --network=host the container's system hostname `container_bridge`
+      # is not resolvable from the host's DNS / /etc/hosts. Pin ROS 1's
+      # advertised hostname to localhost so peers can connect to the bridge's
+      # XMLRPC endpoints (otherwise roscpp logs `couldn't resolve publisher
+      # host [container_bridge]` for every logger query).
+      ROS_HOSTNAME: localhost
+      ROS_MASTER_URI: http://localhost:11311
+    volumes:
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/home/dev/.Xauthority:ro
+      - /home/sl/sim_eng/container_bridge/ws_bridge:/home/dev/ws_bridge:rw
+
+  sim:
+    image: sim_eng/sim:v1.0
+    container_name: container_sim
+    hostname: container_sim
+    network_mode: host
+    ipc: host
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    stdin_open: true
+    tty: true
+    environment:
+      DISPLAY: "${DISPLAY:-}"
+      XAUTHORITY: /home/dev/.Xauthority
+      NVIDIA_DRIVER_CAPABILITIES: all
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/home/dev/.Xauthority:ro
+      - /home/sl/sim_eng/container_sim/ws_sim:/home/dev/ws_sim:rw
