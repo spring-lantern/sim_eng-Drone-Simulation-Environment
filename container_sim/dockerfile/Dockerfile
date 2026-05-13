@@ -73,7 +73,7 @@ RUN git clone https://github.com/PX4/PX4-Autopilot.git /opt/PX4-Autopilot \
 # ------------------------------------------------------------
 ARG USER_UID=1000
 ARG USER_GID=1000
-ARG USER_NAME=dev
+ARG USER_NAME=sl
 # Ubuntu 24.04 ships a default `ubuntu` user at UID/GID 1000 that collides
 # with our build args. Remove it before creating $USER_NAME. Each cleanup
 # step is individually guarded with `|| true` so it tolerates the user/group
@@ -89,9 +89,11 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
 USER $USER_NAME
 WORKDIR /home/$USER_NAME
 
-# Auto-source Jazzy and pin DDS settings to match container_bridge
+# Auto-source Jazzy, pin DDS settings to match container_bridge, and set a
+# custom prompt with red [container_sim] tag + bold-yellow username.
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc \
  && echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc \
- && echo "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> ~/.bashrc
+ && echo "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> ~/.bashrc \
+ && echo "export PS1='\[\033[1;41;97m\] container_sim \[\033[0m\] \[\033[1;33m\]\u\[\033[0m\]@\h:\w\\\$ '" >> ~/.bashrc
 
 CMD ["/bin/bash"]

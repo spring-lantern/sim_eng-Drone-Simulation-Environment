@@ -30,15 +30,15 @@ all work transparently between them.
 ~/sim_eng/
 ├── container_ctrl/
 │   ├── dockerfile/Dockerfile          ← build context for ctrl image
-│   └── ws_ctrl/                        ← mounted into ctrl as /home/dev/ws_ctrl
+│   └── ws_ctrl/                        ← mounted into ctrl as /home/sl/ws_ctrl
 ├── container_bridge/
 │   ├── dockerfile/
 │   │   ├── Dockerfile                  ← build context for bridge image
 │   │   └── bridge_pkg/ros-jazzy-ros1-bridge/   ← pre-built bridge install tree
-│   └── ws_bridge/                          ← /home/dev/ws_bridge inside container_bridge
+│   └── ws_bridge/                          ← /home/sl/ws_bridge inside container_bridge
 ├── container_sim/
 │   ├── dockerfile/Dockerfile           ← build context for sim image
-│   └── ws_sim/                         ← /home/dev/ws_sim inside container_sim
+│   └── ws_sim/                         ← /home/sl/ws_sim inside container_sim
 ├── scripts/
 │   ├── build_all.sh                    ← build all three images, then docker compose up
 │   └── docker-compose.yml              ← defines the three services (no build:, uses prebuilt images)
@@ -122,19 +122,24 @@ ros2 topic list      # should show /chatter
 ros2 topic echo /chatter std_msgs/msg/String
 ```
 
-## Workspace mounts
+## Workspace mounts and in-container user
 
-Each container has a host-side working directory bind-mounted into
-`/home/dev/ws_<name>`:
+All three images create a non-root user `sl` (UID/GID 1000 by default) so
+file ownership inside the bind mounts matches the host. Each container has
+a host-side working directory bind-mounted into `/home/sl/ws_<name>`:
 
-| Container         | Host directory                                  | Container path        |
-| ----------------- | ----------------------------------------------- | --------------------- |
-| `container_ctrl`  | `~/sim_eng/container_ctrl/ws_ctrl`              | `/home/dev/ws_ctrl`   |
-| `container_bridge`| `~/sim_eng/container_bridge/ws_bridge`          | `/home/dev/ws_bridge` |
-| `container_sim`   | `~/sim_eng/container_sim/ws_sim`                | `/home/dev/ws_sim`    |
+| Container         | Host directory                                  | Container path       |
+| ----------------- | ----------------------------------------------- | -------------------- |
+| `container_ctrl`  | `~/sim_eng/container_ctrl/ws_ctrl`              | `/home/sl/ws_ctrl`   |
+| `container_bridge`| `~/sim_eng/container_bridge/ws_bridge`          | `/home/sl/ws_bridge` |
+| `container_sim`   | `~/sim_eng/container_sim/ws_sim`                | `/home/sl/ws_sim`    |
 
 Put your source code under the host-side directory so it persists across
 container restarts.
+
+When you attach to a container the prompt is styled so you know which
+container you're in: a red-highlighted `[container_<name>]` tag at the
+left, followed by a bold-yellow `sl` username.
 
 ## Notes
 

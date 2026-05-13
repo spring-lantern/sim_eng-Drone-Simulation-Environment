@@ -45,7 +45,7 @@ COPY bridge_pkg/ros-jazzy-ros1-bridge /opt/ros-jazzy-ros1-bridge
 # ------------------------------------------------------------
 ARG USER_UID=1000
 ARG USER_GID=1000
-ARG USER_NAME=dev
+ARG USER_NAME=sl
 # Ubuntu 24.04 ships a default `ubuntu` user at UID/GID 1000 that collides
 # with our build args. Remove it before creating $USER_NAME.
 RUN (userdel -r ubuntu 2>/dev/null || true) \
@@ -57,11 +57,15 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
 USER $USER_NAME
 WORKDIR /home/$USER_NAME
 
-# Source Jazzy + bridge in every shell
+# Source Jazzy + bridge, pin ROS 1 advertised hostname to localhost so peers
+# can resolve the bridge's XMLRPC endpoints under --network=host, and set a
+# custom prompt with red [container_bridge] tag + bold-yellow username.
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc \
  && echo "source /opt/ros-jazzy-ros1-bridge/install/local_setup.bash" >> ~/.bashrc \
  && echo "export ROS_DOMAIN_ID=42" >> ~/.bashrc \
  && echo "export RMW_IMPLEMENTATION=rmw_fastrtps_cpp" >> ~/.bashrc \
- && echo "export ROS_MASTER_URI=http://localhost:11311" >> ~/.bashrc
+ && echo "export ROS_MASTER_URI=http://localhost:11311" >> ~/.bashrc \
+ && echo "export ROS_HOSTNAME=localhost" >> ~/.bashrc \
+ && echo "export PS1='\[\033[1;41;97m\] container_bridge \[\033[0m\] \[\033[1;33m\]\u\[\033[0m\]@\h:\w\\\$ '" >> ~/.bashrc
 
 CMD ["/bin/bash"]
